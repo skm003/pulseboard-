@@ -1,4 +1,4 @@
-"""Run one collection pass: scrape all configured accounts and write snapshots.
+"""Run one collection pass: scrape configured + previously-searched accounts.
 
     python collect.py            # one pass now
 """
@@ -9,60 +9,59 @@ from datetime import datetime, timezone
 
 from config import load_accounts
 from collectors import collect_instagram, collect_youtube
-from db import init_db, connect, upsert_post, add_snapshot
+from db import init_db, save_posts, record_target, list_tracked_targets
+
+
+def _scrape(platform: str, target: str, lookback_days: int) -> list[dict]:
+    fn = collect_instagram if platform == "instagram" else collect_youtube
+    posts = fn(target, lookback_days)
+    for p in posts:
+        p["id"] = f"{p['platform']}:{p['native_id']}"
+    return posts
 
 
 def collect_target(platform: str, target: str, lookback_days: int = 10) -> dict:
-    """Scrape a SINGLE account on demand (used by the dashboard search bar).
-
-    platform: 'instagram' or 'youtube'
-    target:   IG username (no @) or YouTube channel URL/@handle
-    """
+    """Scrape a SINGLE account on demand (used by the dashboard search bar)."""
     init_db()
     now_iso = datetime.now(timezone.utc).isoformat()
-    fn = collect_instagram if platform == "instagram" else collect_youtube
-
-    posts = fn(target, lookback_days)
-    accounts = set()
-    post_ids = []
-    with connect() as conn:
-        for p in posts:
-            p["id"] = f"{p['platform']}:{p['native_id']}"
-            upsert_post(conn, p, now_iso)
-            add_snapshot(conn, p["id"], now_iso, p)
-            accounts.add(p["account"])
-            post_ids.append(p["id"])
+    posts = _scrape(platform, target, lookback_days)
+    save_posts(posts, now_iso)
+    record_target(platform, target, now_iso)  # remember it for the cron
+    accounts = sorted({p["account"] for p in posts})
     return {
         "platform": platform,
         "target": target,
         "posts": len(posts),
-        "accounts": sorted(accounts),
-        "post_ids": post_ids,
+        "accounts": accounts,
+        "post_ids": [p["id"] for p in posts],
     }
 
 
 def run_once() -> dict:
+    """Refresh the watch-list AND every previously-searched account, so
+    Trends/Movers build for all ids."""
     init_db()
     cfg = load_accounts()
     lookback = cfg["lookback_days"]
     now_iso = datetime.now(timezone.utc).isoformat()
-
     stats = {"instagram": 0, "youtube": 0, "errors": []}
 
-    jobs = (
-        [("instagram", collect_instagram, h) for h in cfg["instagram"]]
-        + [("youtube", collect_youtube, u) for u in cfg["youtube"]]
+    # watch-list from accounts.json + every account ever searched
+    jobs: list[tuple[str, str]] = (
+        [("instagram", h) for h in cfg["instagram"]]
+        + [("youtube", u) for u in cfg["youtube"]]
+        + list_tracked_targets()
     )
-
-    for platform, fn, target in jobs:
+    seen = set()
+    for platform, target in jobs:
+        key = (platform, target)
+        if key in seen:
+            continue
+        seen.add(key)
         try:
             print(f"[collect] {platform}: {target}", file=sys.stderr)
-            posts = fn(target, lookback)
-            with connect() as conn:
-                for p in posts:
-                    p["id"] = f"{p['platform']}:{p['native_id']}"
-                    upsert_post(conn, p, now_iso)
-                    add_snapshot(conn, p["id"], now_iso, p)
+            posts = _scrape(platform, target, lookback)
+            save_posts(posts, now_iso)
             stats[platform] += len(posts)
             print(f"[collect]   -> {len(posts)} posts", file=sys.stderr)
         except Exception as e:  # noqa: BLE001

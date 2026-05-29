@@ -19,7 +19,8 @@ import streamlit as st
 # app's Secrets UI). Copy them into os.environ BEFORE clients.py reads them,
 # so the same code works locally (.env) and in the cloud (st.secrets).
 try:
-    for _k in ("APIFY_TOKEN", "OPENROUTER_API_KEY", "OPENROUTER_MODEL"):
+    for _k in ("APIFY_TOKEN", "OPENROUTER_API_KEY", "OPENROUTER_MODEL",
+               "TURSO_DATABASE_URL", "TURSO_AUTH_TOKEN", "APP_PASSWORD"):
         if _k in st.secrets and not os.environ.get(_k):
             os.environ[_k] = str(st.secrets[_k])
 except Exception:  # noqa: BLE001 - no secrets file locally is fine
