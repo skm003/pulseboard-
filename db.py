@@ -59,14 +59,31 @@ SCHEMA_STATEMENTS = [
 
 # --------------------------- backend primitives ---------------------------
 
+def _normalized_turso_url() -> str:
+    """Clean the configured URL and use HTTP transport (reliable on Turso)."""
+    url = TURSO_URL.strip().strip('"').strip("'")
+    for scheme in ("libsql://", "wss://", "ws://"):
+        if url.startswith(scheme):
+            url = "https://" + url[len(scheme):]
+            break
+    if "://" not in url:
+        url = "https://" + url
+    url = url.rstrip("/")
+    host = url.split("://", 1)[1]
+    if "..." in url or ".." in host or host.startswith(".") or not host:
+        raise RuntimeError(
+            "TURSO_DATABASE_URL looks invalid/placeholder: "
+            f"'{TURSO_URL}'. Paste your real Turso URL "
+            "(e.g. libsql://yourdb-you.turso.io) with no '...'."
+        )
+    return url
+
+
 def _turso_client():
     import libsql_client
-    # Use HTTP transport (more reliable than the default websocket): map the
-    # libsql:// scheme Turso hands out to https://.
-    url = TURSO_URL
-    if url.startswith("libsql://"):
-        url = "https://" + url[len("libsql://"):]
-    return libsql_client.create_client_sync(url=url, auth_token=TURSO_TOKEN or None)
+    return libsql_client.create_client_sync(
+        url=_normalized_turso_url(), auth_token=TURSO_TOKEN or None
+    )
 
 
 def _write_batch(statements: list[tuple]) -> None:

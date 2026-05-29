@@ -148,7 +148,18 @@ st.markdown(
     "<meta http-equiv='refresh' content='3600'>", unsafe_allow_html=True
 )
 
-init_db()
+try:
+    init_db()
+except Exception as _db_err:  # noqa: BLE001
+    st.error("⚠️ Could not connect to the database.")
+    st.code(str(_db_err))
+    st.markdown(
+        "**Likely fix:** check the `TURSO_DATABASE_URL` secret is your real "
+        "Turso URL (looks like `libsql://yourdb-you.turso.io`) with **no `...`** "
+        "placeholder, and that `TURSO_AUTH_TOKEN` is the full token. "
+        "Edit them under **app → Settings → Secrets**, then reboot."
+    )
+    st.stop()
 
 
 def _check_password() -> bool:
