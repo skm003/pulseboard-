@@ -61,9 +61,12 @@ SCHEMA_STATEMENTS = [
 
 def _turso_client():
     import libsql_client
-    return libsql_client.create_client_sync(
-        url=TURSO_URL, auth_token=TURSO_TOKEN or None
-    )
+    # Use HTTP transport (more reliable than the default websocket): map the
+    # libsql:// scheme Turso hands out to https://.
+    url = TURSO_URL
+    if url.startswith("libsql://"):
+        url = "https://" + url[len("libsql://"):]
+    return libsql_client.create_client_sync(url=url, auth_token=TURSO_TOKEN or None)
 
 
 def _write_batch(statements: list[tuple]) -> None:
