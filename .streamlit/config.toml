@@ -1,0 +1,12 @@
+# PulseBoard theme — palette drawn from the studio photo
+# (deep teal-petrol backdrop, navy seating, bright teal accent)
+[theme]
+base = "dark"
+primaryColor = "#2DD4BF"            # bright teal accent
+backgroundColor = "#0B1A1E"         # deep teal-charcoal
+secondaryBackgroundColor = "#12282E" # card / sidebar surface
+textColor = "#E7F1EF"
+font = "sans serif"
+
+[server]
+headless = true

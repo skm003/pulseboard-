@@ -1,0 +1,16 @@
+{
+  "lookback_days": 10,
+  "instagram": [
+    "nasa",
+    "natgeo"
+  ],
+  "youtube": [
+    "https://www.youtube.com/@MrBeast",
+    "https://www.youtube.com/@mkbhd"
+  ],
+  "_notes": {
+    "instagram": "List public Instagram usernames (no @, no URL). Replace the examples with the pages you want to track.",
+    "youtube": "List YouTube channel URLs or @handles. Replace the examples.",
+    "lookback_days": "How many days of recent posts to track (default 10)."
+  }
+}
