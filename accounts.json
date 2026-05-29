@@ -1,16 +1,12 @@
 {
   "lookback_days": 10,
   "instagram": [
-    "nasa",
-    "natgeo"
+    "sisinty.vaibhav"
   ],
-  "youtube": [
-    "https://www.youtube.com/@MrBeast",
-    "https://www.youtube.com/@mkbhd"
-  ],
+  "youtube": [],
   "_notes": {
-    "instagram": "List public Instagram usernames (no @, no URL). Replace the examples with the pages you want to track.",
-    "youtube": "List YouTube channel URLs or @handles. Replace the examples.",
-    "lookback_days": "How many days of recent posts to track (default 10)."
+    "instagram": "Usernames to auto-track (no @, no URL). These power Trends & Movers.",
+    "youtube": "Add channel URLs or @handles, e.g. \"https://www.youtube.com/@yourchannel\".",
+    "lookback_days": "How many days of recent posts to keep tracking (default 10)."
   }
 }

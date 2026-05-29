@@ -1,0 +1,54 @@
+name: Collect snapshots
+
+# Builds the time-series history that powers the Trends & Movers tabs.
+# Runs on a schedule, scrapes the accounts in accounts.json, and commits the
+# updated tracker.db back to the repo. Each commit auto-redeploys the
+# Streamlit app, so the dashboard always shows the latest history.
+
+on:
+  schedule:
+    # Every 6 hours. Change to "0 * * * *" for hourly (uses more Apify credit),
+    # or "0 6 * * *" for once a day. Times are UTC.
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}   # lets you run it manually from the Actions tab
+
+# Allow the job to push the updated database back to the repo.
+permissions:
+  contents: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Collect snapshots
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: python collect.py
+
+      - name: Commit updated history
+        run: |
+          git config user.name "pulseboard-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f tracker.db
+          if git diff --cached --quiet; then
+            echo "No new data to commit."
+          else
+            git commit -m "snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
