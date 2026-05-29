@@ -115,14 +115,14 @@ def _hero_background_css() -> str:
     <style>
       [data-testid="stAppViewContainer"]::before {{
           content: ""; position: fixed; inset: 0; z-index: -2;
-          background: url('data:image/{mime};base64,{b64}') center 18% / cover no-repeat;
-          filter: blur(11px) brightness(0.40) saturate(1.05);
-          transform: scale(1.08);
+          background: url('data:image/{mime};base64,{b64}') center 16% / cover no-repeat;
+          filter: blur(8px) brightness(0.55) saturate(1.08);
+          transform: scale(1.06);
       }}
-      /* teal wash over the photo so text stays crisp */
+      /* teal wash over the photo so text stays crisp but photo shows through */
       [data-testid="stAppViewContainer"]::after {{
           content: ""; position: fixed; inset: 0; z-index: -1;
-          background: linear-gradient(180deg, rgba(11,26,30,0.72), rgba(11,26,30,0.90));
+          background: linear-gradient(180deg, rgba(11,26,30,0.55), rgba(11,26,30,0.86));
       }}
     </style>
     """
