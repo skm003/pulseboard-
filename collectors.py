@@ -68,7 +68,10 @@ def _use_rapidapi() -> bool:
 
 
 def collect_instagram(username: str, lookback_days: int) -> list[dict]:
-    if _use_rapidapi():
+    import os
+    # Instagram: prefer Apify (full data incl. views). The free RapidAPI IG
+    # tier is only ~20/month, so use it ONLY when no Apify token is set.
+    if not os.environ.get("APIFY_TOKEN", "").strip() and _use_rapidapi():
         from rapidapi_collectors import ig_posts
         return ig_posts(username, lookback_days)
     client = get_apify()
