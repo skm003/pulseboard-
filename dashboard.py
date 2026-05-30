@@ -440,17 +440,31 @@ with tab_table:
 
 # ---------------- TRENDS ----------------
 with tab_trends:
-    labels = {
-        f"[{r.platform}] {(r.title or '(no title)')[:70]}": r.id
-        for r in table.itertuples()
-    }
+    hist_all = load_history()
+    hist_focus = hist_all[hist_all["account"].isin(focus)]
+    snap_counts = hist_focus.groupby("post_id").size().to_dict()
+    # Order posts so those WITH trend history (>=2 snapshots) appear first.
+    rows = sorted(
+        table.itertuples(),
+        key=lambda r: (snap_counts.get(r.id, 0) >= 2, snap_counts.get(r.id, 0)),
+        reverse=True,
+    )
+    labels = {}
+    for r in rows:
+        n = snap_counts.get(r.id, 0)
+        tag = "📈 " if n >= 2 else "🆕 "
+        labels[f"{tag}[{r.platform}] {(r.title or '(no title)')[:65]}"] = r.id
+
+    have_history = sum(1 for n in snap_counts.values() if n >= 2)
+    if have_history:
+        st.caption(f"📈 = has trend data ({have_history} posts) · 🆕 = needs one more collection")
     if labels:
         pick = st.selectbox("Pick a post", list(labels.keys()))
         hist = snapshot_history(labels[pick])
         if len(hist) >= 2:
             hist["captured_at"] = pd.to_datetime(hist["captured_at"], utc=True)
             long = hist.melt("captured_at", ["views", "likes", "comments"],
-                             var_name="metric", value_name="value")
+                             var_name="metric", value_name="value").dropna(subset=["value"])
             st.plotly_chart(
                 px.line(long, x="captured_at", y="value", color="metric",
                         markers=True, title="Metric growth over time"),
@@ -458,22 +472,26 @@ with tab_trends:
             )
         else:
             st.info(
-                "Only one snapshot so far — trend lines appear after the next "
-                "hourly collection. Keep `scheduler.py` running to build history."
+                "This post has only one snapshot so far. Trend lines appear once "
+                "it's been collected twice — the tracker re-checks every few hours "
+                "automatically, or hit **🔄 Refresh data** above to add a point now."
             )
 
 # ---------------- MOVERS ----------------
 with tab_movers:
     hist = load_history()
     hist = hist[hist["account"].isin(focus)]  # only the searched account
-    gro = growth_since(hist, hours=24)
+    # Compare across the whole tracked period (first vs latest snapshot),
+    # so movers show as soon as any post has 2+ snapshots.
+    gro = growth_since(hist, hours=24 * 14)
     if gro.empty:
         st.info(
-            "Movers compares two snapshots. After the tracker runs for a few "
-            "hours you'll see which posts gained the most views here."
+            "Movers compares two snapshots of the same post. This account has "
+            "been collected once so far — once it's collected again (every few "
+            "hours, or hit **🔄 Refresh data**), the biggest gainers show here."
         )
     else:
-        st.caption("Views & likes gained in the last 24h")
+        st.caption("Views & likes gained over the tracked period")
         st.dataframe(
             gro.head(20), use_container_width=True, hide_index=True,
             column_config={
