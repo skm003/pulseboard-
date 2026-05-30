@@ -64,11 +64,34 @@ def _post(host: str, path: str, form: dict):
 _IG_TYPE = {1: "image", 2: "reel", 8: "sidecar"}
 
 
+def _ig_reel_views(username: str) -> dict:
+    """Map {post code -> view/play count} from the reels endpoint, since the
+    posts endpoint omits view counts."""
+    views: dict[str, int] = {}
+    try:
+        data = _post(IG_HOST, "/get_ig_user_reels.php", {
+            "username_or_url": f"https://www.instagram.com/{username}/",
+            "amount": "48",
+        })
+    except Exception:  # noqa: BLE001
+        return views
+    for it in data.get("reels", []):
+        m = (it.get("node") or {}).get("media") if isinstance(it.get("node"), dict) else None
+        if not isinstance(m, dict):
+            continue
+        code = m.get("code")
+        v = _to_int(m.get("play_count") or m.get("view_count") or m.get("ig_play_count"))
+        if code and v is not None:
+            views[code] = v
+    return views
+
+
 def ig_posts(username: str, lookback_days: int) -> list[dict]:
     data = _post(IG_HOST, "/get_ig_user_posts.php", {
         "username_or_url": f"https://www.instagram.com/{username}/",
         "amount": "48",
     })
+    reel_views = _ig_reel_views(username)  # views by post code
     cutoff = _cutoff(lookback_days)
     out: list[dict] = []
     for item in data.get("posts", []):
@@ -95,7 +118,8 @@ def ig_posts(username: str, lookback_days: int) -> list[dict]:
             "title": title[:500], "post_type": post_type,
             "published_at": published.isoformat() if published else None,
             "thumbnail": thumb,
-            "views": _to_int(n.get("view_count") or n.get("play_count") or n.get("ig_play_count")),
+            "views": reel_views.get(n.get("code")) or _to_int(
+                n.get("view_count") or n.get("play_count") or n.get("ig_play_count")),
             "likes": _to_int(n.get("like_count")),
             "comments": _to_int(n.get("comment_count")),
             "shares": None,
