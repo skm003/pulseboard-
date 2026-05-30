@@ -20,7 +20,8 @@ import streamlit as st
 # so the same code works locally (.env) and in the cloud (st.secrets).
 try:
     for _k in ("APIFY_TOKEN", "OPENROUTER_API_KEY", "OPENROUTER_MODEL",
-               "TURSO_DATABASE_URL", "TURSO_AUTH_TOKEN", "APP_PASSWORD"):
+               "TURSO_DATABASE_URL", "TURSO_AUTH_TOKEN", "APP_PASSWORD",
+               "RAPIDAPI_KEY", "RAPIDAPI_IG_HOST", "RAPIDAPI_YT_HOST"):
         if _k in st.secrets and not os.environ.get(_k):
             os.environ[_k] = str(st.secrets[_k])
 except Exception:  # noqa: BLE001 - no secrets file locally is fine

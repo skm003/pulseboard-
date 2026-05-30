@@ -62,7 +62,15 @@ def _duration_seconds(value) -> int | None:
 
 # --------------------------- Instagram ---------------------------
 
+def _use_rapidapi() -> bool:
+    import os
+    return bool(os.environ.get("RAPIDAPI_KEY", "").strip())
+
+
 def collect_instagram(username: str, lookback_days: int) -> list[dict]:
+    if _use_rapidapi():
+        from rapidapi_collectors import ig_posts
+        return ig_posts(username, lookback_days)
     client = get_apify()
     run_input = {
         "directUrls": [f"https://www.instagram.com/{username}/"],
@@ -108,6 +116,9 @@ def collect_instagram(username: str, lookback_days: int) -> list[dict]:
 # --------------------------- YouTube ---------------------------
 
 def collect_youtube(channel_url: str, lookback_days: int) -> list[dict]:
+    if _use_rapidapi():
+        from rapidapi_collectors import yt_videos
+        return yt_videos(channel_url, lookback_days)
     client = get_apify()
     # We only need the most recent ~10 days. Capping results and skipping
     # subtitles/comments/streams cuts the per-video work that makes YT slow.
